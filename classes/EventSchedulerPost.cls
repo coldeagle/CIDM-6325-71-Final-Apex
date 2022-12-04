@@ -1,3 +1,9 @@
+/**
+ * @description This class is an Apex REST class which will take a post of data (see EventSchedulerReq sub class). The data passed
+ * in the request will create a lead and event based on the information passed.
+ *
+ * @author      Jason Hardy
+ */
 @RestResource(UrlMapping='/postEvents/v1/*')
 global without sharing class EventSchedulerPost {
     @TestVisible static String testLastName = 'TestLN';
@@ -34,6 +40,10 @@ global without sharing class EventSchedulerPost {
 
     }
 
+    /**
+     * @description This is the post function that is called when the REST callout is made.
+     * @return      The JSON serialized response to inform whether or not the request was successfully posted
+     */
     @HttpPost
     global static String doPost() {
         EventSchedulerResp returnResp = new EventSchedulerResp();
@@ -52,6 +62,10 @@ global without sharing class EventSchedulerPost {
         return JSON.serializePretty(returnResp, false);
     }
 
+    /**
+     * @description     Will create the lead and event from the POST
+     * @param postReq   The POST request
+     */
     global static void createLeadAndEvent(EventSchedulerReq postReq) {
         Lead l = new Lead(
                 FirstName = postReq.firstName,
@@ -61,10 +75,15 @@ global without sharing class EventSchedulerPost {
                 Company = postReq.company,
                 Description = postReq.description
         );
+
+        //We use test only to indicate whether or not to actually create the data. The testing framework for
+        //django-salesforce doesn't appear to be able to do mocks with the portion of functionality I was using, so
+        //the isTestOnly feature was added to prevent the creation of erroneous information
         if (!postReq.isTestOnly) insert l;
 
         Date derivedDate = EventSchedulerGet.attemptToGetDate(postReq.scheduledDate);
         List<String> splitTime = postReq?.scheduleTime.split(':');
+
         if (splitTime != null && splitTime.size() > 1) {
             Time t = Time.newInstance(Integer.valueOf(splitTime[0]), Integer.valueOf(splitTime[1]), 0, 0);
             Datetime startDt = Datetime.newInstance(derivedDate, t);
@@ -79,6 +98,10 @@ global without sharing class EventSchedulerPost {
 
     }
 
+    /**
+     * @description This is for the unit test to create a test request
+     * @return      The JSON serialized request
+     */
     @TestVisible static String createTestReq() {
         EventSchedulerReq retObj = new EventSchedulerReq();
 
