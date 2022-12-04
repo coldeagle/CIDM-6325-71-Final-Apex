@@ -13,6 +13,13 @@ global without sharing class EventSchedulerPost {
         global String description;
         global Decimal donationAmount;
         global Integer minutes;
+        global Boolean isTestOnly {
+            get {
+                if (this.isTestOnly == null) this.isTestOnly = false;
+                return this.isTestOnly;
+            }
+            set;
+        }
     }
 
     global class EventSchedulerResp {
@@ -31,13 +38,16 @@ global without sharing class EventSchedulerPost {
     global static String doPost() {
         EventSchedulerResp returnResp = new EventSchedulerResp();
         try {
-            String reqBody = Test.isRunningTest() ? createTestReq() : RestContext.request.requestBody.toString();
-
-            createLeadAndEvent((EventSchedulerReq) JSON.deserialize(reqBody, EventSchedulerReq.class));
+            String reqBody = Test.isRunningTest() ? createTestReq() : RestContext.request.requestBody.toString().unescapeUnicode();
+            reqBody = reqBody.startsWith('"{') ? reqBody.substringAfter('"') : reqBody;
+            reqBody = reqBody.endsWith('}"') ? reqBody.substringBeforeLast('"') : reqBody;
+            EventSchedulerReq evtSchReq = (EventSchedulerReq) JSON.deserialize(reqBody, EventSchedulerReq.class);
+            createLeadAndEvent(evtSchReq);
 
         } catch (Exception e) {
             returnResp.isSuccess = false;
             returnResp.message = e.getMessage();
+            System.debug(e.getMessage());
         }
         return JSON.serializePretty(returnResp, false);
     }
@@ -51,7 +61,7 @@ global without sharing class EventSchedulerPost {
                 Company = postReq.company,
                 Description = postReq.description
         );
-        insert l;
+        if (!postReq.isTestOnly) insert l;
 
         Date derivedDate = EventSchedulerGet.attemptToGetDate(postReq.scheduledDate);
         List<String> splitTime = postReq?.scheduleTime.split(':');
@@ -64,7 +74,7 @@ global without sharing class EventSchedulerPost {
                     EndDateTime = startDt.addMinutes(postReq.minutes),
                     WhoId = l.Id
             );
-            insert e;
+            if (!postReq.isTestOnly) insert e;
         }
 
     }

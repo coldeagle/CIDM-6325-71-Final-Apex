@@ -30,6 +30,7 @@ global without sharing class EventSchedulerGet {
             }
             set;
         }
+        global Date requestedDay;
     }
 
     global class AvailableDay {
@@ -84,6 +85,7 @@ global without sharing class EventSchedulerGet {
                 if (valPairs.isEmpty()) valPairs = req?.headers;
 
                 Date requestedDate = attemptToGetDate(valPairs);
+                respObj.requestedDay = requestedDate;
                 Time t = getTimeFromBusinessHour(selectedBh, Datetime.newInstance(requestedDate.year(), requestedDate.month(), requestedDate.day()), true);
                 Datetime dtRequested = Datetime.newInstance(requestedDate, t);
                 Datetime nextAvailable = BusinessHours.nextStartDate(selectedBh.Id, dtRequested);
@@ -177,7 +179,7 @@ global without sharing class EventSchedulerGet {
             Integer iMin = t.minute();
             String hr = iHr < 10 ? '0'+iHr : String.valueOf(iHr);
             String min = iMin < 10 ? '0'+iMin : String.valueOf(iMin);
-            returnVal += hr + ':' + min;
+        returnVal += hr + ':' + min;
         }
 
         return returnVal;
@@ -215,7 +217,6 @@ global without sharing class EventSchedulerGet {
         keyToLocate = String.isBlank(keyToLocate) ? '' : keyToLocate;
 
         for (String key : valPairs.keySet()) {
-            System.debug(key.toLowerCase() == keyToLocate.toLowerCase());
             if (key.toLowerCase() == keyToLocate.toLowerCase()) returnVal = EncodingUtil.urlDecode(valPairs.get(key), 'UTF-8');
         }
 
